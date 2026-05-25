@@ -114,7 +114,7 @@ Jarvis weather
 JARVIS has a two-layer startup system:
 
 1. **Watcher** — starts silently in the background when you log in
-2. **Assistant** — wakes up when you say *"Start Jarvis"*
+2. **Assistant** — wakes up when you say *"Activate Jarvis"*
 
 To enable auto-start, run this once in PowerShell:
 
@@ -124,9 +124,9 @@ powershell -ExecutionPolicy Bypass -File register_startup.ps1
 
 After your next reboot:
 - Watcher starts automatically in the background
-- Say **"Start Jarvis"** → JARVIS wakes up
+- Say **"Activate Jarvis"** → JARVIS wakes up
 - Say **"Jarvis exit"** → JARVIS sleeps (Watcher keeps listening)
-- Say **"Start Jarvis"** again → JARVIS wakes up again
+- Say **"Activate Jarvis"** again → JARVIS wakes up again
 
 ---
 
@@ -149,7 +149,7 @@ Jarvis fullscreen
 Jarvis search for [anything]
 Jarvis new tab
 Jarvis close tab
-Jarvis close all tabs
+Jarvis close all tabs (or Jarvis close browser)
 Jarvis refresh
 ```
 
@@ -201,7 +201,7 @@ Jarvis how are you
 ```
 Jarvis exit         → shuts down JARVIS only
 Jarvis goodbye      → same as exit
-Start Jarvis        → wakes JARVIS up (via Watcher)
+Activate Jarvis     → wakes JARVIS up (via Watcher)
 ```
 
 ---
