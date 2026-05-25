@@ -297,9 +297,11 @@ def execute_command(cmd: str):
         speak("Skipping forward.")
 
     # ── Browser Tab Controls ──────────────────────────────────────────────────
-    elif any(w in cmd for w in ["close all tabs", "close all the tabs"]):
-        pyautogui.hotkey("ctrl", "shift", "w")
-        speak("Closing all tabs.")
+    elif any(w in cmd for w in ["close all tabs", "close all the tabs", "close browser", "exit browser"]):
+        os.system("taskkill /IM brave.exe /F 2>nul")
+        os.system("taskkill /IM chrome.exe /F 2>nul")
+        os.system("taskkill /IM msedge.exe /F 2>nul")
+        speak("Browser closed.")
 
     elif any(w in cmd for w in ["close tab", "close this tab", "close the tab"]):
         pyautogui.hotkey("ctrl", "w")
@@ -370,8 +372,8 @@ def execute_command(cmd: str):
         speak("Opening Task Manager.")
 
     # ── PC Power Controls ─────────────────────────────────────────────────────
-    elif any(w in cmd for w in ["shut down my computer", "shut down my pc",
-                                 "turn off my pc", "turn off computer", "shutdown pc"]):
+    elif any(w in cmd for w in ["shut down", "turn off", "shutdown", "power off"]) and \
+         any(w in cmd for w in ["pc", "computer", "system", "machine"]):
         speak("Shutting down your computer.")
         os.system("shutdown /s /t 5")
 

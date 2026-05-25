@@ -20,9 +20,7 @@ ASSISTANT     = os.path.join(SCRIPT_DIR, "assistant.py")
 LOG_FILE      = os.path.join(SCRIPT_DIR, "watcher.log")
 
 WAKE_PHRASES  = [
-    "start jarvis", "wake up jarvis", "jarvis wake up",
-    "activate jarvis", "launch jarvis", "turn on jarvis",
-    "hey jarvis start", "jarvis on",
+    "activate jarvis"
 ]
 
 jarvis_process = None
@@ -79,7 +77,7 @@ def main():
     log("Watcher starting — waiting 10 s for system to settle...")
     time.sleep(10)
     log("Watcher active.")
-    speak("Jarvis watcher is active. Say Start Jarvis to begin.")
+    speak("Jarvis watcher is active. Say Activate Jarvis to begin.")
 
     recognizer = sr.Recognizer()
     recognizer.dynamic_energy_threshold = True
