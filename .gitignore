@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.spec
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Voice profile (personal — do not commit)
+user_embedding.pt
+user_voice.wav
+.tmp_auth.wav
+.enroll_tmp.wav
+
+# Logs & notes
+watcher.log
+notes.txt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
