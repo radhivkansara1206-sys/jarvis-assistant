@@ -274,4 +274,4 @@ jarvis-assistant/
 
 ## 📄 License
 
-MIT © [Rajiv Kansara](https://github.com/radhivkansara1206-sys)
+MIT © [Radhiv Kansara](https://github.com/radhivkansara1206-sys)
