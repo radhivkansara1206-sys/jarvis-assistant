@@ -23,6 +23,7 @@ import webbrowser
 import urllib.parse
 import urllib.request
 import speech_recognition as sr
+import random
 import pyttsx3
 import torch
 import requests
@@ -414,6 +415,28 @@ def main():
         print("[INFO] Calibrating microphone...")
         recognizer.adjust_for_ambient_noise(source, duration=2)
 
+    # Daily Motivational Thought
+    quotes = [
+        "Believe you can and you're halfway there.",
+        "Your limitation, it's only your imagination.",
+        "Push yourself, because no one else is going to do it for you.",
+        "Great things never come from comfort zones.",
+        "Dream it. Wish it. Do it.",
+        "Success doesn't just find you. You have to go out and get it.",
+        "The harder you work for something, the greater you'll feel when you achieve it.",
+        "Dream bigger. Do bigger.",
+        "Don't stop when you're tired. Stop when you're done.",
+        "Wake up with determination. Go to bed with satisfaction.",
+        "Do something today that your future self will thank you for.",
+        "Little things make big days.",
+        "It's going to be hard, but hard does not mean impossible.",
+        "Don't wait for opportunity. Create it.",
+        "Sometimes we're tested not to show our weaknesses, but to discover our strengths."
+    ]
+    # Pick a quote based on the current day of the year (consistent throughout the day)
+    day_of_year = datetime.datetime.now().timetuple().tm_yday
+    thought_of_the_day = quotes[day_of_year % len(quotes)]
+
     hour = datetime.datetime.now().hour
     if hour < 12:
         greeting = "Good morning."
@@ -421,7 +444,8 @@ def main():
         greeting = "Good afternoon."
     else:
         greeting = "Good evening."
-    speak(f"{greeting} Jarvis online. Ready for your commands.")
+    
+    speak(f"{greeting} Thought for the day: {thought_of_the_day} Jarvis online. Ready for your commands.")
     print("\n[READY] Say 'Jarvis' followed by your command.\n")
 
     while True:
