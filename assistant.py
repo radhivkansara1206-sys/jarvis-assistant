@@ -57,6 +57,16 @@ except Exception:
 # ──────────────────────────────────────────────
 def speak(text: str):
     """Speak text using female TTS voice."""
+    if text:
+        punctuation = "."
+        if text[-1] in ".!?":
+            punctuation = text[-1]
+            text = text[:-1]
+        if not text.lower().endswith("sir"):
+            text = f"{text}, sir{punctuation}"
+        else:
+            text = f"{text}{punctuation}"
+            
     print(f"[JARVIS] {text}")
     try:
         engine = pyttsx3.init()
@@ -75,6 +85,16 @@ def speak(text: str):
 
 def speak_async(text: str):
     """Thread-safe TTS via PowerShell (used inside background threads)."""
+    if text:
+        punctuation = "."
+        if text[-1] in ".!?":
+            punctuation = text[-1]
+            text = text[:-1]
+        if not text.lower().endswith("sir"):
+            text = f"{text}, sir{punctuation}"
+        else:
+            text = f"{text}{punctuation}"
+            
     safe = text.replace("'", "").replace('"', "")
     os.system(
         f'powershell -Command "'
