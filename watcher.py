@@ -13,6 +13,9 @@ import time
 import subprocess
 import pyttsx3
 import speech_recognition as sr
+import requests
+import sounddevice as sd
+import numpy as np
 
 SCRIPT_DIR    = os.path.dirname(os.path.abspath(__file__))
 PYTHON        = os.path.join(SCRIPT_DIR, "venv", "Scripts", "python.exe")
@@ -22,6 +25,10 @@ LOG_FILE      = os.path.join(SCRIPT_DIR, "watcher.log")
 WAKE_PHRASES  = [
     "activate jarvis"
 ]
+
+# ElevenLabs Voice Setup
+ELEVENLABS_API_KEY   = ""  # <-- PASTE API KEY HERE
+ELEVENLABS_VOICE_ID  = ""  # <-- PASTE VOICE ID HERE
 
 jarvis_process = None
 
@@ -37,7 +44,36 @@ def log(msg: str):
         pass
 
 
+def play_elevenlabs_tts(text: str) -> bool:
+    if not ELEVENLABS_API_KEY or not ELEVENLABS_VOICE_ID:
+        return False
+    try:
+        url = f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}?output_format=pcm_44100"
+        headers = {
+            "xi-api-key": ELEVENLABS_API_KEY,
+            "Content-Type": "application/json"
+        }
+        data = {
+            "text": text,
+            "model_id": "eleven_turbo_v2_5",
+            "voice_settings": {"stability": 0.5, "similarity_boost": 0.75}
+        }
+        response = requests.post(url, json=data, headers=headers, timeout=10)
+        if response.status_code == 200:
+            audio_data = np.frombuffer(response.content, dtype=np.int16)
+            audio_float = audio_data.astype(np.float32) / 32768.0
+            sd.play(audio_float, samplerate=44100)
+            sd.wait()
+            return True
+    except Exception:
+        pass
+    return False
+
+
 def speak(text: str):
+    if play_elevenlabs_tts(text):
+        return
+        
     try:
         engine = pyttsx3.init()
         voices = engine.getProperty("voices")

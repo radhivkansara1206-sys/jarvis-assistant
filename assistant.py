@@ -28,6 +28,8 @@ import pyttsx3
 import torch
 import requests
 import soundfile as sf
+import sounddevice as sd
+import numpy as np
 import pyautogui
 
 os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
@@ -43,6 +45,10 @@ NOTES_FILE           = os.path.join(SCRIPT_DIR, "notes.txt")
 SIMILARITY_THRESHOLD = 0.15   # Calibrated for user voice (scores: 0.15–0.46)
 BRAVE_PATH           = r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe"
 
+# ElevenLabs Voice Setup
+ELEVENLABS_API_KEY   = ""  # <-- PASTE API KEY HERE
+ELEVENLABS_VOICE_ID  = ""  # <-- PASTE VOICE ID HERE
+
 # ──────────────────────────────────────────────
 #  BROWSER SETUP (Brave → fallback to default)
 # ──────────────────────────────────────────────
@@ -53,10 +59,40 @@ except Exception:
     browser = webbrowser
 
 # ──────────────────────────────────────────────
-#  TEXT-TO-SPEECH  (female voice – MS Zira)
+#  TEXT-TO-SPEECH (ElevenLabs with Windows Fallback)
 # ──────────────────────────────────────────────
+def play_elevenlabs_tts(text: str) -> bool:
+    """Streams and plays TTS from ElevenLabs using raw PCM. Returns True if successful."""
+    if not ELEVENLABS_API_KEY or not ELEVENLABS_VOICE_ID:
+        return False
+    try:
+        url = f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}?output_format=pcm_44100"
+        headers = {
+            "xi-api-key": ELEVENLABS_API_KEY,
+            "Content-Type": "application/json"
+        }
+        data = {
+            "text": text,
+            "model_id": "eleven_turbo_v2_5",
+            "voice_settings": {"stability": 0.5, "similarity_boost": 0.75}
+        }
+        response = requests.post(url, json=data, headers=headers, timeout=10)
+        if response.status_code == 200:
+            audio_data = np.frombuffer(response.content, dtype=np.int16)
+            audio_float = audio_data.astype(np.float32) / 32768.0
+            sd.play(audio_float, samplerate=44100)
+            sd.wait()
+            return True
+        else:
+            print(f"[ElevenLabs API Error]: {response.status_code} - {response.text}")
+            return False
+    except Exception as e:
+        print(f"[ElevenLabs Exception]: {e}")
+        return False
+
+
 def speak(text: str):
-    """Speak text using female TTS voice."""
+    """Speak text using ElevenLabs or fallback to female TTS voice."""
     if text:
         punctuation = "."
         if text[-1] in ".!?":
@@ -67,7 +103,12 @@ def speak(text: str):
         else:
             text = f"{text}{punctuation}"
             
+            
     print(f"[JARVIS] {text}")
+    
+    if play_elevenlabs_tts(text):
+        return
+        
     try:
         engine = pyttsx3.init()
         voices = engine.getProperty("voices")
@@ -95,6 +136,9 @@ def speak_async(text: str):
         else:
             text = f"{text}{punctuation}"
             
+    if play_elevenlabs_tts(text):
+        return
+        
     safe = text.replace("'", "").replace('"', "")
     os.system(
         f'powershell -Command "'
