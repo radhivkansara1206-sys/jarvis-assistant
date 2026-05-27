@@ -414,7 +414,14 @@ def main():
         print("[INFO] Calibrating microphone...")
         recognizer.adjust_for_ambient_noise(source, duration=2)
 
-    speak("Jarvis online. Ready for your commands.")
+    hour = datetime.datetime.now().hour
+    if hour < 12:
+        greeting = "Good morning."
+    elif 12 <= hour < 18:
+        greeting = "Good afternoon."
+    else:
+        greeting = "Good evening."
+    speak(f"{greeting} Jarvis online. Ready for your commands.")
     print("\n[READY] Say 'Jarvis' followed by your command.\n")
 
     while True:
