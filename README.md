@@ -153,7 +153,7 @@ Jarvis close all tabs (or Jarvis close browser)
 Jarvis refresh
 ```
 
-### 📱 Open Apps
+### 📱 Open / Close Apps
 ```
 Jarvis open WhatsApp
 Jarvis open WhatsApp and type [message]
@@ -164,6 +164,7 @@ Jarvis open notepad
 Jarvis file explorer
 Jarvis open settings
 Jarvis task manager
+Jarvis close            → closes the currently active app/window
 ```
 
 ### 🔊 Volume & System

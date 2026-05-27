@@ -371,6 +371,11 @@ def execute_command(cmd: str):
         os.system("start taskmgr")
         speak("Opening Task Manager.")
 
+    # ── Close Current App ─────────────────────────────────────────────────────
+    elif any(w in cmd for w in ["close app", "close this app", "close the app"]) or cmd == "close":
+        pyautogui.hotkey("alt", "f4")
+        speak("App closed.")
+
     # ── PC Power Controls ─────────────────────────────────────────────────────
     elif any(w in cmd for w in ["shut down", "turn off", "shutdown", "power off"]) and \
          any(w in cmd for w in ["pc", "computer", "system", "machine"]):
