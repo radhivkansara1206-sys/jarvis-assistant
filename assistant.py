@@ -409,7 +409,7 @@ def execute_command(cmd: str):
 
     # ── Exit JARVIS ───────────────────────────────────────────────────────────
     elif any(w in cmd for w in ["exit", "goodbye", "bye", "stop listening",
-                                 "shut down jarvis", "turn off jarvis"]) \
+                                 "shut down jarvis", "turn off jarvis", "you can leave", "u can leave"]) \
             or cmd.strip() in ["stop", "shut down"]:
         speak("Goodbye. I will be here when you need me.")
         sys.exit(0)
