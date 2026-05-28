@@ -25,6 +25,7 @@ import urllib.request
 import speech_recognition as sr
 import random
 import pyttsx3
+import torch
 import pygame
 import edge_tts
 import asyncio
