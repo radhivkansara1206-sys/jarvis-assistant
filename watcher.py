@@ -90,7 +90,18 @@ def speak(text: str):
 
 def is_running() -> bool:
     global jarvis_process
-    return jarvis_process is not None and jarvis_process.poll() is None
+    if jarvis_process is not None and jarvis_process.poll() is None:
+        return True
+    
+    # Also check system processes to see if assistant.py is running elsewhere
+    try:
+        output = subprocess.check_output('wmic process where "name=\'python.exe\'" get commandline', shell=True).decode()
+        if "assistant.py" in output:
+            return True
+    except:
+        pass
+        
+    return False
 
 
 def start_jarvis():
