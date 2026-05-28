@@ -46,8 +46,8 @@ SIMILARITY_THRESHOLD = 0.15   # Calibrated for user voice (scores: 0.15–0.46)
 BRAVE_PATH           = r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe"
 
 # ElevenLabs Voice Setup
-ELEVENLABS_API_KEY   = ""  # <-- PASTE API KEY HERE
-ELEVENLABS_VOICE_ID  = ""  # <-- PASTE VOICE ID HERE
+ELEVENLABS_API_KEY   = "sk_b57a2654e3b50aa6b180834cf5546fbef0d1d72dc97f58a4"  # <-- PASTE API KEY HERE
+ELEVENLABS_VOICE_ID  = "wDsJlOXPqcvIUKdLXjDs"  # <-- PASTE VOICE ID HERE
 
 # ──────────────────────────────────────────────
 #  BROWSER SETUP (Brave → fallback to default)
