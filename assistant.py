@@ -31,8 +31,6 @@ import edge_tts
 import asyncio
 import tempfile
 import soundfile as sf
-import sounddevice as sd
-import numpy as np
 import pyautogui
 
 os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
