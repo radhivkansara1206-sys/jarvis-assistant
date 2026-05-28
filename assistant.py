@@ -25,8 +25,10 @@ import urllib.request
 import speech_recognition as sr
 import random
 import pyttsx3
-import torch
-import requests
+import pygame
+import edge_tts
+import asyncio
+import tempfile
 import soundfile as sf
 import sounddevice as sd
 import numpy as np
@@ -45,10 +47,6 @@ NOTES_FILE           = os.path.join(SCRIPT_DIR, "notes.txt")
 SIMILARITY_THRESHOLD = 0.15   # Calibrated for user voice (scores: 0.15–0.46)
 BRAVE_PATH           = r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe"
 
-# ElevenLabs Voice Setup
-ELEVENLABS_API_KEY   = "sk_b57a2654e3b50aa6b180834cf5546fbef0d1d72dc97f58a4"  # <-- PASTE API KEY HERE
-ELEVENLABS_VOICE_ID  = "wDsJlOXPqcvIUKdLXjDs"  # <-- PASTE VOICE ID HERE
-
 # ──────────────────────────────────────────────
 #  BROWSER SETUP (Brave → fallback to default)
 # ──────────────────────────────────────────────
@@ -59,40 +57,41 @@ except Exception:
     browser = webbrowser
 
 # ──────────────────────────────────────────────
-#  TEXT-TO-SPEECH (ElevenLabs with Windows Fallback)
+#  TEXT-TO-SPEECH (Edge-TTS with Windows Fallback)
 # ──────────────────────────────────────────────
-def play_elevenlabs_tts(text: str) -> bool:
-    """Streams and plays TTS from ElevenLabs using raw PCM. Returns True if successful."""
-    if not ELEVENLABS_API_KEY or not ELEVENLABS_VOICE_ID:
-        return False
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
+
+def play_edge_tts(text: str) -> bool:
+    """Generates and plays TTS using Microsoft Edge-TTS."""
     try:
-        url = f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}?output_format=pcm_44100"
-        headers = {
-            "xi-api-key": ELEVENLABS_API_KEY,
-            "Content-Type": "application/json"
-        }
-        data = {
-            "text": text,
-            "model_id": "eleven_turbo_v2_5",
-            "voice_settings": {"stability": 0.5, "similarity_boost": 0.75}
-        }
-        response = requests.post(url, json=data, headers=headers, timeout=10)
-        if response.status_code == 200:
-            audio_data = np.frombuffer(response.content, dtype=np.int16)
-            audio_float = audio_data.astype(np.float32) / 32768.0
-            sd.play(audio_float, samplerate=44100)
-            sd.wait()
-            return True
-        else:
-            print(f"[ElevenLabs API Error]: {response.status_code} - {response.text}")
-            return False
+        temp_mp3 = os.path.join(tempfile.gettempdir(), "jarvis_tts.mp3")
+        
+        async def _generate():
+            communicate = edge_tts.Communicate(text, "en-US-AriaNeural")
+            await communicate.save(temp_mp3)
+            
+        asyncio.run(_generate())
+        
+        pygame.mixer.init()
+        pygame.mixer.music.load(temp_mp3)
+        pygame.mixer.music.play()
+        while pygame.mixer.music.get_busy():
+            pygame.time.Clock().tick(10)
+        pygame.mixer.quit()
+        
+        try:
+            os.remove(temp_mp3)
+        except OSError:
+            pass
+            
+        return True
     except Exception as e:
-        print(f"[ElevenLabs Exception]: {e}")
+        print(f"[Edge-TTS Exception]: {e}")
         return False
 
 
 def speak(text: str):
-    """Speak text using ElevenLabs or fallback to female TTS voice."""
+    """Speak text using Edge-TTS or fallback to pyttsx3."""
     if text:
         punctuation = "."
         if text[-1] in ".!?":
@@ -106,7 +105,7 @@ def speak(text: str):
             
     print(f"[JARVIS] {text}")
     
-    if play_elevenlabs_tts(text):
+    if play_edge_tts(text):
         return
         
     try:
@@ -136,7 +135,7 @@ def speak_async(text: str):
         else:
             text = f"{text}{punctuation}"
             
-    if play_elevenlabs_tts(text):
+    if play_edge_tts(text):
         return
         
     safe = text.replace("'", "").replace('"', "")
