@@ -32,6 +32,8 @@ import asyncio
 import tempfile
 import soundfile as sf
 import pyautogui
+import eel
+import google.generativeai as genai
 
 os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
 from speechbrain.inference.speaker import EncoderClassifier
@@ -45,6 +47,21 @@ TEMP_WAV             = os.path.join(SCRIPT_DIR, ".tmp_auth.wav")
 NOTES_FILE           = os.path.join(SCRIPT_DIR, "notes.txt")
 SIMILARITY_THRESHOLD = 0.15   # Calibrated for user voice (scores: 0.15–0.46)
 BRAVE_PATH           = r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe"
+
+# Gemini API for Self-Learning Conversational AI
+GEMINI_API_KEY = "" # <-- PASTE GEMINI API KEY HERE
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+    gemini_model = genai.GenerativeModel('gemini-1.5-flash')
+else:
+    gemini_model = None
+
+# UI Bridge
+def set_ui_status(main_text, sub_text, listening=False):
+    try:
+        eel.update_status(main_text, sub_text, listening)
+    except Exception:
+        pass
 
 # ──────────────────────────────────────────────
 #  BROWSER SETUP (Brave → fallback to default)
@@ -454,19 +471,26 @@ def execute_command(cmd: str):
                                  "shut down jarvis", "turn off jarvis", "you can leave", "u can leave"]) \
             or cmd.strip() in ["stop", "shut down"]:
         speak("Goodbye. I will be here when you need me.")
-        sys.exit(0)
+        set_ui_status("OFFLINE", "System shutdown.", False)
+        time.sleep(2)
+        os._exit(0)
 
     else:
-        speak("Sorry, I did not understand that command.")
+        # Fallback to Self-Learning / Gemini LLM
+        if gemini_model:
+            set_ui_status("THINKING", "Consulting neural network...", False)
+            try:
+                prompt = f"You are JARVIS, a highly advanced, witty British AI assistant. Answer this concisely: {cmd}"
+                response = gemini_model.generate_content(prompt)
+                speak(response.text.strip())
+            except Exception as e:
+                print(f"[GEMINI ERROR] {e}")
+                speak("I am having trouble connecting to my neural network.")
+        else:
+            speak("Sorry, I did not understand that command, and my advanced AI modules are not configured yet.")
 
 # ──────────────────────────────────────────────
-#  MAIN LOOP
-# ──────────────────────────────────────────────
-def main():
-    print("=" * 50)
-    print("       JARVIS AI Assistant")
-    print("=" * 50)
-
+def background_listening_loop():
     classifier, user_embedding = load_voice_profile()
 
     recognizer = sr.Recognizer()
@@ -474,6 +498,7 @@ def main():
     recognizer.pause_threshold = 0.8
 
     with sr.Microphone() as source:
+        set_ui_status("CALIBRATING", "Adjusting to ambient noise...", False)
         print("[INFO] Calibrating microphone...")
         recognizer.adjust_for_ambient_noise(source, duration=2)
 
@@ -484,18 +509,8 @@ def main():
         "Push yourself, because no one else is going to do it for you.",
         "Great things never come from comfort zones.",
         "Dream it. Wish it. Do it.",
-        "Success doesn't just find you. You have to go out and get it.",
-        "The harder you work for something, the greater you'll feel when you achieve it.",
-        "Dream bigger. Do bigger.",
-        "Don't stop when you're tired. Stop when you're done.",
-        "Wake up with determination. Go to bed with satisfaction.",
-        "Do something today that your future self will thank you for.",
-        "Little things make big days.",
-        "It's going to be hard, but hard does not mean impossible.",
-        "Don't wait for opportunity. Create it.",
-        "Sometimes we're tested not to show our weaknesses, but to discover our strengths."
+        "Success doesn't just find you. You have to go out and get it."
     ]
-    # Pick a quote based on the current day of the year (consistent throughout the day)
     day_of_year = datetime.datetime.now().timetuple().tm_yday
     thought_of_the_day = quotes[day_of_year % len(quotes)]
 
@@ -507,14 +522,17 @@ def main():
     else:
         greeting = "Good evening."
     
+    set_ui_status("ONLINE", "Ready for commands.", False)
     speak(f"{greeting} Thought for the day: {thought_of_the_day} Jarvis online. Ready for your commands.")
     print("\n[READY] Say 'Jarvis' followed by your command.\n")
 
     while True:
         try:
+            set_ui_status("LISTENING", "Say 'Jarvis' to command me.", True)
             with sr.Microphone() as source:
-                audio = recognizer.listen(source, timeout=6, phrase_time_limit=10)
+                audio = recognizer.listen(source, timeout=None, phrase_time_limit=10)
 
+            set_ui_status("PROCESSING", "Analyzing audio signature...", False)
             text = recognizer.recognize_google(audio).lower().strip()
             print(f"[HEARD] '{text}'")
 
@@ -523,16 +541,18 @@ def main():
 
             score, authorized = verify_speaker(audio, classifier, user_embedding)
 
-            # Calibrate command: always responds with score
             if "calibrate" in text:
                 speak(f"Your voice score is {score:.2f}. Threshold is {SIMILARITY_THRESHOLD}.")
                 continue
 
             if not authorized:
+                set_ui_status("DENIED", "Unauthorized voice print.", False)
                 speak("Unauthorized voice. Command ignored.")
                 continue
 
             command = re.sub(r"\bjarvis\b", "", text).strip()
+            
+            set_ui_status("EXECUTING", f"Command: {command}", False)
             execute_command(command)
 
         except sr.WaitTimeoutError:
@@ -541,10 +561,28 @@ def main():
             pass
         except sr.RequestError:
             print("[ERROR] Speech recognition unavailable. Check internet.")
-        except SystemExit:
-            raise
+            time.sleep(5)
         except Exception as e:
             print(f"[ERROR] {e}")
+
+
+def main():
+    print("=" * 50)
+    print("       JARVIS AI Assistant + HUD")
+    print("=" * 50)
+
+    # Start background loop in a thread
+    t = threading.Thread(target=background_listening_loop, daemon=True)
+    t.start()
+    
+    # Launch Eel UI
+    eel.init(os.path.join(SCRIPT_DIR, 'web'))
+    try:
+        # Try Chrome/Edge app mode
+        eel.start('index.html', size=(620, 650), port=0)
+    except Exception:
+        # Fallback to default browser if Chrome/Edge are missing
+        eel.start('index.html', mode='default', size=(620, 650), port=0)
 
 
 if __name__ == "__main__":
