@@ -88,20 +88,25 @@ def speak(text: str):
         pass
 
 
+last_system_check_time = 0
+last_system_check_result = False
+
 def is_running() -> bool:
-    global jarvis_process
+    global jarvis_process, last_system_check_time, last_system_check_result
     if jarvis_process is not None and jarvis_process.poll() is None:
         return True
     
-    # Also check system processes to see if assistant.py is running elsewhere
-    try:
-        output = subprocess.check_output('wmic process where "name=\'python.exe\'" get commandline', shell=True).decode()
-        if "assistant.py" in output:
-            return True
-    except:
-        pass
+    # Throttle system process checks to once every 10 seconds to save battery
+    now = time.time()
+    if now - last_system_check_time > 10:
+        try:
+            output = subprocess.check_output('wmic process where "name=\'python.exe\'" get commandline', shell=True).decode()
+            last_system_check_result = "assistant.py" in output
+        except:
+            last_system_check_result = False
+        last_system_check_time = now
         
-    return False
+    return last_system_check_result
 
 
 def start_jarvis():
@@ -128,45 +133,42 @@ def main():
 
     recognizer = sr.Recognizer()
     recognizer.dynamic_energy_threshold = True
-    errors = 0
 
-    while True:
-        if is_running():
-            time.sleep(2)
-            errors = 0
-            continue
+    with sr.Microphone() as source:
+        log("Calibrating ambient noise...")
+        recognizer.adjust_for_ambient_noise(source, duration=2.0)
+        log("Calibration complete. Listening efficiently...")
+        
+        while True:
+            if is_running():
+                time.sleep(2)
+                continue
 
-        try:
-            with sr.Microphone() as source:
-                recognizer.adjust_for_ambient_noise(source, duration=0.5)
-                audio = recognizer.listen(source, timeout=5, phrase_time_limit=5)
+            try:
+                # timeout=None blocks cleanly using 0 CPU until someone speaks
+                audio = recognizer.listen(source, timeout=None, phrase_time_limit=5)
+                
+                # Double check before sending to cloud to save battery/bandwidth
+                if is_running():
+                    continue
+                    
+                text = recognizer.recognize_google(audio).lower()
+                log(f"Heard: '{text}'")
 
-            text = recognizer.recognize_google(audio).lower()
-            log(f"Heard: '{text}'")
-            errors = 0
+                if any(phrase in text for phrase in WAKE_PHRASES):
+                    start_jarvis()
 
-            if any(phrase in text for phrase in WAKE_PHRASES):
-                start_jarvis()
-
-        except (sr.WaitTimeoutError, sr.UnknownValueError):
-            pass
-        except sr.RequestError as e:
-            errors += 1
-            log(f"STT error: {e}")
-            time.sleep(5)
-        except OSError as e:
-            errors += 1
-            log(f"Mic error: {e}")
-            time.sleep(10)
-        except Exception as e:
-            errors += 1
-            log(f"Error: {e}")
-            time.sleep(5)
-
-        if errors > 10:
-            log("Too many errors — pausing 30 s...")
-            time.sleep(30)
-            errors = 0
+            except (sr.WaitTimeoutError, sr.UnknownValueError):
+                pass
+            except sr.RequestError as e:
+                log(f"STT error: {e}")
+                time.sleep(5)
+            except OSError as e:
+                log(f"Mic error: {e}")
+                time.sleep(10)
+            except Exception as e:
+                log(f"Error: {e}")
+                time.sleep(5)
 
 
 if __name__ == "__main__":
