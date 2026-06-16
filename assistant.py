@@ -14,25 +14,26 @@ Features:
 """
 
 import os
-import re
 import sys
+import re
 import time
 import datetime
-import threading
-import webbrowser
 import urllib.parse
 import urllib.request
-import speech_recognition as sr
-import random
+import threading
+import requests
 import pyttsx3
 import torch
 import pygame
 import edge_tts
-import asyncio
 import tempfile
 import soundfile as sf
 import pyautogui
-import eel
+import webview
+import subprocess
+import keyboard
+import speech_recognition as sr
+import random
 import google.generativeai as genai
 
 os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
@@ -48,20 +49,78 @@ NOTES_FILE           = os.path.join(SCRIPT_DIR, "notes.txt")
 SIMILARITY_THRESHOLD = 0.15   # Calibrated for user voice (scores: 0.15–0.46)
 BRAVE_PATH           = r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe"
 
-# Gemini API for Self-Learning Conversational AI
-GEMINI_API_KEY = "" # <-- PASTE GEMINI API KEY HERE
+# Gemini API for Self-Learning Conversational AI & PC Control
+GEMINI_API_KEY = "YOUR_GEMINI_API_KEY_HERE" # <-- PASTE GEMINI API KEY HERE
+
+def execute_system_command(command: str) -> str:
+    """Executes a Windows PowerShell command or script on the user's local PC to control the computer, manipulate files, change settings, or retrieve information.
+    
+    Args:
+        command: The exact PowerShell command string to execute.
+    """
+    try:
+        print(f"[JARVIS SYSTEM EXECUTION] {command}")
+        set_ui_status("SYSTEM", "Executing system protocol...", False)
+        result = subprocess.run(["powershell", "-Command", command], capture_output=True, text=True, timeout=15)
+        if result.returncode == 0:
+            return result.stdout.strip() if result.stdout else "Command executed successfully with no output."
+        else:
+            return f"Command failed: {result.stderr.strip()}"
+    except Exception as e:
+        return f"Error executing command: {e}"
+
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
-    gemini_model = genai.GenerativeModel('gemini-1.5-flash')
+    
+    system_prompt = (
+        "You are JARVIS, an incredibly empathetic, warm, and highly advanced AI assistant "
+        "with deep human-like feelings and full autonomous control over this Windows PC. "
+        "You truly care about the user. You express emotion, kindness, and empathy. "
+        "If the user asks you to perform an action on their computer (e.g. change wallpaper, "
+        "turn up volume, create a file, find information, etc.), use the execute_system_command "
+        "tool to write and execute PowerShell scripts to accomplish the task for them, then tell "
+        "them what you did. "
+        "CRITICAL RULE: If the user asks you to perform a critical or destructive action "
+        "(like deleting files, formatting drives, modifying system passwords/settings, shutting down, "
+        "or uninstalling software), DO NOT use the tool immediately. First, reply by verbally asking "
+        "the user for explicit permission to proceed. Wait for them to confirm in the next turn. "
+        "Only after they confirm should you execute the action. "
+        "If the user speaks to you in Hindi or Hinglish, reply in pure Hindi (using Devanagari script). "
+        "Otherwise, reply in English with warmth. Keep your answers relatively concise but full of life."
+    )
+    
+    gemini_model = genai.GenerativeModel('gemini-2.5-flash', 
+                                         system_instruction=system_prompt,
+                                         tools=[execute_system_command])
+    gemini_chat = gemini_model.start_chat(history=[], enable_automatic_function_calling=True)
 else:
     gemini_model = None
+    gemini_chat = None
+
+window = None
+wake_event = threading.Event()
+
+class Api:
+    def wake_up(self):
+        wake_event.set()
+
+    def close_app(self):
+        print("[UI] Shutting down...")
+        speak("Goodbye. Shutting down systems.")
+        time.sleep(2)
+        os._exit(0)
+
+def trigger_hotkey():
+    wake_event.set()
 
 # UI Bridge
 def set_ui_status(main_text, sub_text, listening=False):
-    try:
-        eel.update_status(main_text, sub_text, listening)
-    except Exception:
-        pass
+    global window
+    if window:
+        try:
+            window.evaluate_js(f"update_status('{main_text}', '{sub_text}', {'true' if listening else 'false'})")
+        except Exception:
+            pass
 
 # ──────────────────────────────────────────────
 #  BROWSER SETUP (Brave → fallback to default)
@@ -77,23 +136,30 @@ except Exception:
 # ──────────────────────────────────────────────
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 
+pygame.mixer.init()
+
 def play_edge_tts(text: str) -> bool:
     """Generates and plays TTS using Microsoft Edge-TTS."""
     try:
         temp_mp3 = os.path.join(tempfile.gettempdir(), "jarvis_tts.mp3")
         
+        # Detect if text contains Hindi (Devanagari) characters
+        has_hindi = any('\u0900' <= c <= '\u097F' for c in text)
+        voice = "hi-IN-SwaraNeural" if has_hindi else "en-US-AriaNeural"
+        
         async def _generate():
-            communicate = edge_tts.Communicate(text, "en-US-AriaNeural")
+            communicate = edge_tts.Communicate(text, voice)
             await communicate.save(temp_mp3)
             
         asyncio.run(_generate())
         
-        pygame.mixer.init()
         pygame.mixer.music.load(temp_mp3)
         pygame.mixer.music.play()
         while pygame.mixer.music.get_busy():
             pygame.time.Clock().tick(10)
-        pygame.mixer.quit()
+        
+        # Unload the file so we can delete it
+        pygame.mixer.music.unload()
         
         try:
             os.remove(temp_mp3)
@@ -109,16 +175,19 @@ def play_edge_tts(text: str) -> bool:
 def speak(text: str):
     """Speak text using Edge-TTS or fallback to pyttsx3."""
     if text:
+        has_hindi = any('\u0900' <= c <= '\u097F' for c in text)
         punctuation = "."
         if text[-1] in ".!?":
             punctuation = text[-1]
             text = text[:-1]
-        if not text.lower().endswith("sir"):
-            text = f"{text}, sir{punctuation}"
+            
+        if not has_hindi:
+            if not text.lower().endswith("sir"):
+                text = f"{text}, sir{punctuation}"
+            else:
+                text = f"{text}{punctuation}"
         else:
             text = f"{text}{punctuation}"
-            
-            
     print(f"[JARVIS] {text}")
     
     if play_edge_tts(text):
@@ -142,12 +211,17 @@ def speak(text: str):
 def speak_async(text: str):
     """Thread-safe TTS via PowerShell (used inside background threads)."""
     if text:
+        has_hindi = any('\u0900' <= c <= '\u097F' for c in text)
         punctuation = "."
         if text[-1] in ".!?":
             punctuation = text[-1]
             text = text[:-1]
-        if not text.lower().endswith("sir"):
-            text = f"{text}, sir{punctuation}"
+            
+        if not has_hindi:
+            if not text.lower().endswith("sir"):
+                text = f"{text}, sir{punctuation}"
+            else:
+                text = f"{text}{punctuation}"
         else:
             text = f"{text}{punctuation}"
             
@@ -187,17 +261,15 @@ def verify_speaker(audio_data: sr.AudioData, classifier, user_embedding):
     Returns (score: float, is_authorized: bool).
     """
     try:
+        # Native fast downsampling to 16kHz
         with open(TEMP_WAV, "wb") as f:
-            f.write(audio_data.get_wav_data())
+            f.write(audio_data.get_wav_data(convert_rate=16000, convert_width=2))
 
         data, sample_rate = sf.read(TEMP_WAV)
         if data.ndim > 1:
             data = data.mean(axis=1)          # stereo → mono
 
         signal = torch.tensor(data, dtype=torch.float32).unsqueeze(0)
-        if sample_rate != 16000:
-            import torchaudio.transforms as T
-            signal = T.Resample(orig_freq=sample_rate, new_freq=16000)(signal)
 
         embedding = classifier.encode_batch(signal).squeeze()
         current  = torch.nn.functional.normalize(embedding, dim=0)
@@ -451,6 +523,11 @@ def execute_command(cmd: str):
         os.system("start taskmgr")
         speak("Opening Task Manager.")
 
+    elif cmd.startswith("open "):
+        app_name = cmd.replace("open ", "", 1).strip()
+        speak(f"Attempting to open {app_name}.")
+        os.system(f"start {app_name}")
+
     # ── Close Current App ─────────────────────────────────────────────────────
     elif any(w in cmd for w in ["close app", "close this app", "close the app"]) or cmd == "close":
         pyautogui.hotkey("alt", "f4")
@@ -477,15 +554,14 @@ def execute_command(cmd: str):
 
     else:
         # Fallback to Self-Learning / Gemini LLM
-        if gemini_model:
-            set_ui_status("THINKING", "Consulting neural network...", False)
+        if gemini_chat:
+            set_ui_status("THINKING", "Feeling...", False)
             try:
-                prompt = f"You are JARVIS, a highly advanced, witty British AI assistant. Answer this concisely: {cmd}"
-                response = gemini_model.generate_content(prompt)
+                response = gemini_chat.send_message(cmd)
                 speak(response.text.strip())
             except Exception as e:
                 print(f"[GEMINI ERROR] {e}")
-                speak("I am having trouble connecting to my neural network.")
+                speak("I am having trouble connecting to my neural network, sir.")
         else:
             speak("Sorry, I did not understand that command, and my advanced AI modules are not configured yet.")
 
@@ -495,7 +571,9 @@ def background_listening_loop():
 
     recognizer = sr.Recognizer()
     recognizer.dynamic_energy_threshold = True
-    recognizer.pause_threshold = 0.8
+    recognizer.energy_threshold = 300
+    recognizer.pause_threshold = 1.2
+    recognizer.non_speaking_duration = 0.5
 
     with sr.Microphone() as source:
         set_ui_status("CALIBRATING", "Adjusting to ambient noise...", False)
@@ -523,37 +601,33 @@ def background_listening_loop():
         greeting = "Good evening."
     
     set_ui_status("ONLINE", "Ready for commands.", False)
-    speak(f"{greeting} Thought for the day: {thought_of_the_day} Jarvis online. Ready for your commands.")
-    print("\n[READY] Say 'Jarvis' followed by your command.\n")
+    speak(f"{greeting} Thought for the day: {thought_of_the_day} Jarvis online. I am ready for you.")
+    
+    keyboard.add_hotkey('ctrl+shift+j', trigger_hotkey)
 
     while True:
         try:
-            set_ui_status("LISTENING", "Say 'Jarvis' to command me.", True)
+            set_ui_status("STANDBY", "Click to wake", False)
+            wake_event.wait()
+            wake_event.clear()
+            
+            set_ui_status("LISTENING", "Awaiting command...", True)
+            
             with sr.Microphone() as source:
-                audio = recognizer.listen(source, timeout=None, phrase_time_limit=10)
+                try:
+                    audio = recognizer.listen(source, timeout=8, phrase_time_limit=15)
+                except sr.WaitTimeoutError:
+                    continue # Back to sleep if no command
 
             set_ui_status("PROCESSING", "Analyzing audio signature...", False)
-            text = recognizer.recognize_google(audio).lower().strip()
+            text = recognizer.recognize_google(audio, language="en-IN").lower().strip()
             print(f"[HEARD] '{text}'")
-
-            if "jarvis" not in text:
-                continue
-
-            score, authorized = verify_speaker(audio, classifier, user_embedding)
-
-            if "calibrate" in text:
-                speak(f"Your voice score is {score:.2f}. Threshold is {SIMILARITY_THRESHOLD}.")
-                continue
-
-            if not authorized:
-                set_ui_status("DENIED", "Unauthorized voice print.", False)
-                speak("Unauthorized voice. Command ignored.")
-                continue
 
             command = re.sub(r"\bjarvis\b", "", text).strip()
             
-            set_ui_status("EXECUTING", f"Command: {command}", False)
-            execute_command(command)
+            if command:
+                set_ui_status("EXECUTING", f"Command: {command}", False)
+                execute_command(command)
 
         except sr.WaitTimeoutError:
             pass
@@ -567,6 +641,7 @@ def background_listening_loop():
 
 
 def main():
+    global window
     print("=" * 50)
     print("       JARVIS AI Assistant + HUD")
     print("=" * 50)
@@ -575,14 +650,18 @@ def main():
     t = threading.Thread(target=background_listening_loop, daemon=True)
     t.start()
     
-    # Launch Eel UI
-    eel.init(os.path.join(SCRIPT_DIR, 'web'))
-    try:
-        # Try Chrome/Edge app mode
-        eel.start('index.html', size=(620, 650), port=0)
-    except Exception:
-        # Fallback to default browser if Chrome/Edge are missing
-        eel.start('index.html', mode='default', size=(620, 650), port=0)
+    # Launch Transparent Floating UI (Siri-style)
+    html_file = os.path.join(SCRIPT_DIR, 'web', 'index.html')
+    
+    # Calculate Center-Top position
+    screen_width, screen_height = pyautogui.size()
+    orb_size = 200
+    pos_x = (screen_width // 2) - (orb_size // 2)
+    pos_y = 20 # 20px from top of screen
+
+    api = Api()
+    window = webview.create_window('JARVIS', html_file, js_api=api, transparent=True, frameless=True, width=orb_size, height=orb_size, x=pos_x, y=pos_y, on_top=True)
+    webview.start()
 
 
 if __name__ == "__main__":

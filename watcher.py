@@ -152,7 +152,8 @@ def main():
                 if is_running():
                     continue
                     
-                text = recognizer.recognize_google(audio).lower()
+                # Use en-IN for better local accent recognition
+                text = recognizer.recognize_google(audio, language="en-IN").lower()
                 log(f"Heard: '{text}'")
 
                 if any(phrase in text for phrase in WAKE_PHRASES):

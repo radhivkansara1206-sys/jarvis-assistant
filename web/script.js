@@ -1,9 +1,8 @@
-// Eel functions to be called from Python
-eel.expose(update_status);
+// Function called from Python via pywebview
 function update_status(mainText, subText, isListening) {
     document.getElementById('status-text').innerText = mainText;
     document.getElementById('sub-text').innerText = subText;
-
+    
     if (isListening) {
         document.body.classList.add('listening');
     } else {
@@ -11,6 +10,16 @@ function update_status(mainText, subText, isListening) {
     }
 }
 
-// Example usage to test without python (remove or ignore)
-// setTimeout(() => update_status("LISTENING", "Processing audio...", true), 2000);
-// setTimeout(() => update_status("ANALYZING", "Accessing neural net...", false), 5000);
+// Function called from UI to wake Python
+function wake_jarvis() {
+    if (window.pywebview && window.pywebview.api) {
+        window.pywebview.api.wake_up();
+    }
+}
+
+// Function called from UI to close Python app
+function close_jarvis() {
+    if (window.pywebview && window.pywebview.api) {
+        window.pywebview.api.close_app();
+    }
+}

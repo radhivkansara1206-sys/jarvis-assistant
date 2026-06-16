@@ -5,43 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JARVIS HUD</title>
     <link rel="stylesheet" href="style.css">
-    <script type="text/javascript" src="/eel.js"></script>
 </head>
 <body>
     <div class="hud-container">
-        <!-- Background Tech Lines -->
-        <div class="tech-lines"></div>
+        <!-- Close Button -->
+        <div class="close-btn" onclick="close_jarvis()">&#10006;</div>
 
-        <!-- Outer Decorative Rings -->
-        <div class="ring ring-outer"></div>
-        <div class="ring ring-middle"></div>
-        <div class="ring ring-inner" id="pulse-ring"></div>
-        
-        <!-- The Main Thick Cyan Ring -->
-        <div class="main-circle">
-            <div class="core-glow"></div>
+        <!-- The Main Glowing Siri-like Orb -->
+        <div class="orb" onclick="wake_jarvis()">
+            <div class="orb-core"></div>
         </div>
 
         <!-- Status Text in the Center -->
         <div class="status-center">
-            <h1 id="status-text">STANDBY</h1>
-            <p id="sub-text">Waiting for Wake Word...</p>
-        </div>
-
-        <!-- Radial Labels -->
-        <div class="radial-labels">
-            <span style="--i:1;">Music</span>
-            <span style="--i:2;">Alarm</span>
-            <span style="--i:3;">News</span>
-            <span style="--i:4;">Info</span>
-            <span style="--i:5;">Keyboard</span>
-            <span style="--i:6;">Gaming</span>
-            <span style="--i:7;">Test Alarm</span>
-            <span style="--i:8;">Emulate</span>
-            <span style="--i:9;">Debug</span>
-            <span style="--i:10;">Email</span>
-            <span style="--i:11;">Settings</span>
-            <span style="--i:12;">Customize</span>
+            <h1 id="status-text">JARVIS</h1>
+            <p id="sub-text">Standby</p>
         </div>
     </div>
     

@@ -2,11 +2,11 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 body {
-    background-color: #030a10;
+    background-color: transparent !important;
     color: #fff;
     display: flex;
     justify-content: center;
@@ -18,151 +18,88 @@ body {
 
 .hud-container {
     position: relative;
-    width: 600px;
-    height: 600px;
+    width: 180px;
+    height: 180px;
     display: flex;
     justify-content: center;
     align-items: center;
+    background: rgba(5, 10, 15, 0.9); /* Dark solid background for visibility */
+    border-radius: 24px; /* Soft rounded corners */
+    border: 1px solid rgba(0, 255, 255, 0.3); /* Subtle cyan border */
+    box-shadow: 0 15px 35px rgba(0,0,0,0.8), inset 0 0 20px rgba(0,255,255,0.1); /* Deep shadow */
 }
 
-/* Background Tech lines simulation */
-.tech-lines {
+/* The Siri-like Orb */
+.orb {
     position: absolute;
-    width: 100%;
-    height: 100%;
-    background-image: 
-        linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px);
-    background-size: 20px 20px;
+    width: 120px;
+    height: 120px;
     border-radius: 50%;
-    opacity: 0.3;
-}
-
-/* Rotating Decorative Rings */
-.ring {
-    position: absolute;
-    border-radius: 50%;
-    border: 1px solid rgba(0, 255, 255, 0.2);
-}
-
-.ring-outer {
-    width: 550px;
-    height: 550px;
-    border-top: 2px solid #00ffff;
-    border-bottom: 2px solid #00ffff;
-    animation: spin-slow 10s linear infinite;
-}
-
-.ring-middle {
-    width: 480px;
-    height: 480px;
-    border: 1px dashed rgba(0, 255, 255, 0.5);
-    animation: spin-reverse 15s linear infinite;
-}
-
-.ring-inner {
-    width: 320px;
-    height: 320px;
-    border: 2px solid rgba(0, 255, 255, 0.1);
-    box-shadow: inset 0 0 20px rgba(0, 255, 255, 0.2);
+    background: radial-gradient(circle, rgba(0, 255, 255, 0.8) 0%, rgba(0, 150, 255, 0.4) 50%, rgba(0, 0, 0, 0) 70%);
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
     transition: all 0.3s ease;
+    animation: idle-float 4s ease-in-out infinite;
 }
 
-/* The Main Glowing Cyan Circle */
-.main-circle {
+.orb-core {
     position: absolute;
-    width: 380px;
-    height: 380px;
+    width: 60px;
+    height: 60px;
     border-radius: 50%;
-    border: 20px solid #063440;
-    box-shadow: 0 0 50px rgba(0, 255, 255, 0.2), inset 0 0 50px rgba(0, 255, 255, 0.2);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.core-glow {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    border: 20px solid #00ffff;
-    filter: drop-shadow(0 0 15px #00ffff);
-    opacity: 0.8;
+    background: #ffffff;
+    box-shadow: 0 0 20px #ffffff, 0 0 40px #00ffff;
+    filter: blur(2px);
 }
 
 /* Listening State Animations */
-body.listening .core-glow {
-    animation: pulse-ring 1s infinite alternate;
+body.listening .orb {
+    animation: active-pulse 0.8s infinite alternate;
+    background: radial-gradient(circle, rgba(255, 0, 255, 0.8) 0%, rgba(0, 255, 255, 0.6) 50%, rgba(0, 0, 0, 0) 70%);
+    box-shadow: 0 0 50px rgba(255, 0, 255, 0.7);
 }
-body.listening .ring-inner {
-    box-shadow: inset 0 0 50px rgba(0, 255, 255, 0.8), 0 0 50px rgba(0, 255, 255, 0.8);
-    border-color: #00ffff;
+body.listening .orb-core {
+    box-shadow: 0 0 30px #ffffff, 0 0 60px #ff00ff;
 }
 
 /* Status Text */
 .status-center {
     position: absolute;
+    bottom: 5px;
     text-align: center;
     z-index: 10;
+    width: 100%;
 }
 
 .status-center h1 {
-    font-size: 32px;
-    color: #00ffff;
-    text-shadow: 0 0 10px #00ffff;
-    letter-spacing: 4px;
-    text-transform: uppercase;
-    margin-bottom: 5px;
+    font-size: 16px;
+    color: #ffffff;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+    letter-spacing: 2px;
+    margin-bottom: 2px;
+    display: none; /* Hide main text for cleaner look */
 }
 
 .status-center p {
-    font-size: 14px;
-    color: rgba(255, 255, 255, 0.7);
-    letter-spacing: 1px;
-    max-width: 250px;
-    line-height: 1.4;
-}
-
-/* Radial Menu Labels */
-.radial-labels {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-}
-
-.radial-labels span {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform-origin: center;
     font-size: 12px;
-    color: #008b8b;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    font-weight: bold;
-    transform: translate(-50%, -50%) rotate(calc(var(--i) * 30deg)) translateY(-240px);
-    text-shadow: 0 0 5px #00ffff;
-    transition: color 0.3s;
-}
-
-.radial-labels span:hover {
-    color: #00ffff;
-    cursor: pointer;
+    color: rgba(255, 255, 255, 0.9);
+    text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+    background: rgba(0, 0, 0, 0.4);
+    padding: 2px 8px;
+    border-radius: 10px;
+    display: inline-block;
 }
 
 /* Animations */
-@keyframes spin-slow {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+@keyframes idle-float {
+    0% { transform: scale(1) translateY(0); }
+    50% { transform: scale(1.05) translateY(-5px); }
+    100% { transform: scale(1) translateY(0); }
 }
 
-@keyframes spin-reverse {
-    0% { transform: rotate(360deg); }
-    100% { transform: rotate(0deg); }
-}
-
-@keyframes pulse-ring {
-    0% { transform: scale(0.98); opacity: 0.6; box-shadow: 0 0 20px #00ffff; }
-    100% { transform: scale(1.02); opacity: 1; box-shadow: 0 0 60px #00ffff; }
+@keyframes active-pulse {
+    0% { transform: scale(0.9) rotate(0deg); filter: hue-rotate(0deg); }
+    100% { transform: scale(1.3) rotate(10deg); filter: hue-rotate(45deg); }
 }
